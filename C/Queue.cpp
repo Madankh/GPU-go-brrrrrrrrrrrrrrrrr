@@ -2,9 +2,8 @@
 using namespace std;
 
 #define n 20
-
 class queue{
-    int *arr;
+    int* arr;
     int front;
     int back;
 
@@ -22,7 +21,6 @@ class queue{
         }
         back++;
         arr[back] = x;
-
         if(front == -1){
             front++;
         }
@@ -41,7 +39,6 @@ class queue{
             cout<<"No element in queue"<<endl;
             return -1;
         }
-
         return arr[front];
     }
 
@@ -55,16 +52,14 @@ class queue{
 
 int main(){
     queue q;
-    q.push(3);
     q.push(2);
-    q.push(61);
-    q.push(1);
+    q.push(3);
+    q.push(4);
+    q.push(5);
+    q.push(6);;
+    cout<<q.peek()<<endl;;
+    q.pop();
+    cout<<q.peek()<<endl;
 
-    cout<<q.peek()<<endl;
-    q.pop();
-    cout<<q.peek()<<endl;
-    q.pop();
-    q.pop();
-    cout<<q.empty();
-    return 0;
+    return 0; 
 }

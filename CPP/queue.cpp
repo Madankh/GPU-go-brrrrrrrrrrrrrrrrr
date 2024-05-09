@@ -4,11 +4,11 @@ using namespace std;
 #define n 20
 
 class queue{
+    public:
     int *arr;
     int front;
     int back;
 
-    public:
     queue(){
         arr = new int[n];
         front = -1;
@@ -16,32 +16,29 @@ class queue{
     }
 
     void push(int x){
-        if(back == n-1){
-            cout<<"Queue overflow"<<endl;
+         if(back == n-1){
+            cout<<"Queue is overflow"<<endl;
             return;
-        }
-        back++;
-        arr[back] = x;
+         }
+         back++;
+         arr[back] = x;
 
-        if(front == -1){
+         if(front == -1){
             front++;
-        }
+         }
     }
 
     void pop(){
         if(front == -1 || front > back){
-            cout<<"No element in queue"<<endl;
-            return;
+            cout<<"No element in Queue"<<endl;
         }
         front++;
     }
 
     int peek(){
         if(front == -1 || front > back){
-            cout<<"No element in queue"<<endl;
-            return -1;
+            cout<<"Non element found"<<endl;
         }
-
         return arr[front];
     }
 
