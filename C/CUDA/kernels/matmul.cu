@@ -3,9 +3,9 @@
 #include<time.h>
 #include<cuda_runtime.h>
 #include<Windows.h>
-#define M 1024  // Number of rows in A and C
+#define M 256  // Number of rows in A and C
 #define K 512   //  Number of columns in A and rows in B
-#define N 2048 // Number of columns in B and C
+#define N 256 // Number of columns in B and C
 #define BLOCK_SIZE 32
 
 /// Example 3x2 @ 2x4 = 3x4 --? (M X K) @ (K x N) = (M X N)
