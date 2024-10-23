@@ -42,5 +42,20 @@ int main(){
     CHECK_CUDA_ERROR(cudaMalloc((void **)&d_A, size));
     CHECK_CUDA_ERROR(cudaMalloc((void **)&d_B, size));
     CHECK_CUDA_ERROR(cudaMalloc((void **)&d_C, size));
+
+    // Create Stream
+    CHECK_CUDA_ERROR(cudaStreamCreate(&stream1));
+    CHECK_CUDA_ERROR(cudaStreamCreate(&stream2));
+
+    //lAUNCHG KERNELS
+    int threadsperBlock = 256;
+    int blocksPerGrid = (numElements + threadsperBlock - 1);
+    vectorAdd<<<blocksPerGrid, threadsperBlock>>>(d_A, d_B, d_C, numElements);
+    
+    // Copy result back to host asynchronously
+    CHECK_CUDA_ERROR(cudaMemcpyAsync(h_C, d_C, size, cudaMemcpyDeviceToHost, stream1));
+
+    // Synchronize streams
+    CHECK_CUDA_ERROR()
     return 0;
 }
