@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include<cuda_runtime.h>
-#include<cublas_v2.h>
-#include<cuda_fp16.h>
+#include <stdio.h>
+#include <cuda_runtime.h>
+#include <cublas_v2.h>
+#include <cuda_fp16.h>
 
 #define M 3
 #define K 4
@@ -13,7 +13,7 @@
         fprintf(stderr, "CUDA error in %s:%d: %s\n", __FILE__, __LINE__, cudaGetErrorString(err)); \
         exit(EXIT_FAILURE); \
     } \
-} 
+}
 
 #define CHECK_CUBLAS(call) { \
     cublasStatus_t status = call; \
