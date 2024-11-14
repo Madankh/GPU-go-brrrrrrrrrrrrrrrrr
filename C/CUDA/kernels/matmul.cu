@@ -35,7 +35,6 @@ void matmul_cpu(float *A, float *B, float *C, int m, int k, int n){
 }
 
 /// Example 3x2 @ 2x4 = 3x4 --? (M X K) @ (K x N) = (M X N)
-
 // CUDA kernel for matrix multiplication
 __global__ void matmul_gpu(float *A, float *B, float *C, int m, int k, int n){
     int row = blockIdx.y * blockDim.y + threadIdx.y;
