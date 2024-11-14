@@ -13,13 +13,14 @@
     } \
 }
 
-#define CHECK_CUBLAS(call) { \
-    cublasStatus_t status = call; \
-    if (status != CUBLAS_STATUS_SUCCESS) { \
-        fprintf(stderr, "cuBLAS error in %s:%d: %d\n", __FILE__, __LINE__, status); \
+#define CHECK_CUDNN(call) { \
+    cudnnStatus_t err = call; \
+    if (err != CUDNN_STATUS_SUCCESS) { \
+        fprintf(stderr, "cuDNN error in file '%s' in line %i : %s.\n", __FILE__, __LINE__, cudnnGetErrorString(err)); \
         exit(EXIT_FAILURE); \
     } \
 }
+
 // Naive cuda kernel for tanh activation
 __global__ void naiveTanhKernel(float* input, float* output, int size){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -73,9 +74,45 @@ int main(){
 
     // Allocate device memory
     float *d_input, *d_output_naive, *d_output_cudnn;
-    CHECK_CUDA(cudaMalloc(*d_input, tensor_size * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(*d_output_naive, tensor_size * sizeof(float)));
-    CHECK_CUDA(cudaMalloc(*d_output_cudnn, tensor_size * sizeof(float)));
+    CHECK_CUDA(cudaMalloc(&d_input, tensor_size * sizeof(float)));
+    CHECK_CUDA(cudaMalloc(&d_output_naive, tensor_size * sizeof(float)));
+    CHECK_CUDA(cudaMalloc(&d_output_cudnn, tensor_size * sizeof(float)));
+
+    // Copy input data to device
+    CHECK_CUDA(cudaMemcpy(d_input, h_input, tensor_size * sizeof(float), cudaMemcpyHostToDevice));
+    // Create CUDA events for timing
+    cudaEvent_t start, stop;
+    CHECK_CUDA(cudaEventCreate(&start));
+    CHECK_CUDA(cudaEventCreate(&stop));
+
+    // warmup and benchmark parameters
+    const int num_warmup = 10;
+    const int num_benchmark = 100;
+    float naive_times[num_benchmark];
+    float cudnn_times[num_benchmark];
+
+    // Naive CUDA kernel
+    dim3 block(256);
+    dim3 grid((tensor_size + block.x - 1)/block.x);
+
+    // warmup runs for naive kernel
+    for(int i=0; i<num_warmup; i++){
+        CHECK_CUDA(cudaEventRecord(start));
+        naiveTanhKernel<<<grid, block>>>(d_input, d_output_naive, tensor_size);
+        CHECK_CUDA(cudaEventRecord(stop));
+        CHECK_CUDA(cudaEventSynchronize(stop))
+        CHECK_CUDA(cudaEventElapsedTime(&naive_times[i], start, stop));
+    }
+
+    // cuDNN setup
+    cudnnHandle_t cudnn;
+    CHECK_CUDNN(cudnnCreate(&cudnn));
+
+    cudnnActivationDescriptor_t activation_descriptor;
+    CHECK_CUDNN(cudnnCreateActivationDescriptor(&activation_descriptor));
+    CHECK_CUDNN(cudnnSetActivationDescriptor(activation_descriptor, CUDNN_ACTIVATION_TANH,
+                                             CUDNN_PROPAGATE_NAN, 0.0));
+
     
     return 0;
 }
