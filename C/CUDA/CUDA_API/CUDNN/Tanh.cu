@@ -108,11 +108,77 @@ int main(){
     cudnnHandle_t cudnn;
     CHECK_CUDNN(cudnnCreate(&cudnn));
 
+    cudnnTensorDescriptor_t input_descriptor;
+    CHECK_CUDNN(cudnnCreateTensorDescriptor(&input_descriptor));
+    CHECK_CUDNN(cudnnSetTensor4dDescriptor(input_descriptor, CUDNN_TENSOR_NCHW,CUDNN_DATA_FLOAT,
+                                             batch_size,channels, height, width));
+
     cudnnActivationDescriptor_t activation_descriptor;
     CHECK_CUDNN(cudnnCreateActivationDescriptor(&activation_descriptor));
     CHECK_CUDNN(cudnnSetActivationDescriptor(activation_descriptor, CUDNN_ACTIVATION_TANH,
                                              CUDNN_PROPAGATE_NAN, 0.0));
 
-    
+    float alpha = 1.0f, beta=0.0f;
+    // warmup runs for cuDNN
+    for(int i=0; i<num_warmup, ++i){
+        CHECK_CUDNN(cudnnActivationForward(cudnn, activation_descriptor, &alpha, input_descriptor, d_input,&beta, input_descriptor, d_output_cudnn));
+    }
+
+    CHECK_CUDA(cudaDeviceSynchronize());
+
+   // Benchmark runs for cuDNN
+    for (int i = 0; i < num_benchmark; ++i) {
+        CHECK_CUDA(cudaEventRecord(start));
+        CHECK_CUDNN(cudnnActivationForward(cudnn, activation_descriptor, &alpha, input_descriptor, d_input,
+                                           &beta, input_descriptor, d_output_cudnn));
+        CHECK_CUDA(cudaEventRecord(stop));
+        CHECK_CUDA(cudaEventSynchronize(stop));
+        CHECK_CUDA(cudaEventElapsedTime(&cudnn_times[i], start, stop));
+    }
+
+    // Calculate average times
+    float avg_naive_time = 0.0f, avg_cudnn_time = 0.0f;
+    for (int i = 0; i < num_benchmark; ++i) {
+        avg_naive_time += naive_times[i];
+        avg_cudnn_time += cudnn_times[i];
+    }
+    avg_naive_time /= num_benchmark;
+    avg_cudnn_time /= num_benchmark;
+
+    // Copy results back to host
+    CHECK_CUDA(cudaMemcpy(h_output_naive, d_output_naive, tensor_size * sizeof(float), cudaMemcpyDeviceToHost));
+    CHECK_CUDA(cudaMemcpy(h_output_cudnn, d_output_cudnn, tensor_size * sizeof(float), cudaMemcpyDeviceToHost));
+
+    // CPU verification
+    for (int i = 0; i < tensor_size; ++i) {
+        h_output_cpu[i] = cpuTanh(h_input[i]);
+    }
+
+    // Verify results
+    bool naive_correct = verifyResults(h_output_cpu, h_output_naive, tensor_size);
+    bool cudnn_correct = verifyResults(h_output_cpu, h_output_cudnn, tensor_size);
+
+    // Print results
+    printf("Tensor size: %d x %d x %d x %d\n", batch_size, channels, height, width);
+    printf("Average Naive CUDA kernel time: %.3f ms\n", avg_naive_time);
+    printf("Average cuDNN activation time: %.3f ms\n", avg_cudnn_time);
+    printf("Speedup: %.2fx\n", avg_naive_time / avg_cudnn_time);
+    printf("Naive kernel results correct: %s\n", naive_correct ? "Yes" : "No");
+    printf("cuDNN results correct: %s\n", cudnn_correct ? "Yes" : "No");
+
+    // Clean up
+    CHECK_CUDA(cudaFree(d_input));
+    CHECK_CUDA(cudaFree(d_output_naive));
+    CHECK_CUDA(cudaFree(d_output_cudnn));
+    CHECK_CUDA(cudaEventDestroy(start));
+    CHECK_CUDA(cudaEventDestroy(stop));
+    CHECK_CUDNN(cudnnDestroyTensorDescriptor(input_descriptor));
+    CHECK_CUDNN(cudnnDestroyActivationDescriptor(activation_descriptor));
+    CHECK_CUDNN(cudnnDestroy(cudnn));
+    free(h_input);
+    free(h_output_naive);
+    free(h_output_cudnn);
+    free(h_output_cpu);
+
     return 0;
 }

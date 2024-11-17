@@ -27,7 +27,7 @@ def square_3(a):
     return a ** 2
 
 time_pytorch_function(torch.square, b);
-time_pytorch_function(square_2, b)
+time_pytorch_function( , b)
 time_pytorch_function(square_3, b)
 
 print("===================")
