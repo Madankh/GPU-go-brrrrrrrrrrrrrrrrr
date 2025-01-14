@@ -38,6 +38,7 @@ __global__ void vector_add_gpu_3d(float *a, float *b, float *c, int nx, int ny, 
 
      if(i < nx && j < ny && z < nz){
         int idx = i + j * nx + z * nx * ny;
+       
         if (idx < nx * ny * nz){
             c[idx] = a[idx] + b[idx];
         }
